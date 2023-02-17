@@ -3,34 +3,34 @@
 
 <h3>Países</h3>
 
-@if(Countries is null)
-{
-    <p>Cargando...</p>
-} else
-{
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th></th>
-                <th>País</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var country in Countries)
-            {
+<a class="btn btn-primary" href="/countries/create">Nuevo País</a>
+
+<GenericList MyList="Countries">
+    <Body>
+        <table class="table table-striped">
+            <thead>
                 <tr>
-                    <td>
-                        <a class="btn btn-warning">Editar</a>
-                        <button class="btn btn-danger">Borrar</button>
-                    </td>
-                    <td>
-                        @country.Name
-                    </td>
-                </tr>   
-            }
-        </tbody>
-    </table>
-}
+                    <th></th>
+                    <th>País</th>
+                </tr>
+            </thead>
+            <tbody>
+                    @foreach (var country in Countries!)
+                    {
+                        <tr>
+                            <td>
+                                <a class="btn btn-warning">Editar</a>
+                                <button class="btn btn-danger">Borrar</button>
+                            </td>
+                            <td>
+                                @country.Name
+                            </td>
+                        </tr>   
+                    }
+            </tbody>
+        </table>
+    </Body>
+</GenericList>
 
 @code {
     public List<Country>? Countries { get; set; }
