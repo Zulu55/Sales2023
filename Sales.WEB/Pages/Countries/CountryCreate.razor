@@ -1,0 +1,32 @@
+﻿@page "/countries/create"
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService sweetAlertService
+
+<h3>Crear País</h3>
+
+<CountryForm @ref="countryForm" Country="country" OnValidSubmit="Create" ReturnAction="Return" />
+
+@code {
+    private Country country = new();
+    private CountryForm? countryForm;
+
+    private async Task Create()
+    {
+        var httpResponse = await repository.Post("/api/countries", country);
+        if(httpResponse.Error)
+        {
+            var message = await httpResponse.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", message);
+            return;
+        }
+
+        countryForm!.FormPostedSuccessfully = true;
+        navigationManager.NavigateTo("/countries");
+    }
+
+    private void Return()
+    {
+        navigationManager.NavigateTo("/countries");
+    }
+}
