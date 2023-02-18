@@ -32,16 +32,16 @@ else
 
 @code {
     [Parameter]
-    public RenderFragment Loading { get; set; }
-        
+    public RenderFragment? Loading { get; set; }
+
     [Parameter]
-    public RenderFragment NoRecords { get; set; }
+    public RenderFragment? NoRecords { get; set; }
 
     [Parameter]
     [EditorRequired]
-    public RenderFragment Body { get; set; }
+    public RenderFragment Body { get; set; } = null!;
 
     [Parameter]
     [EditorRequired]
-    public List<Titem> MyList { get; set; }
+    public List<Titem> MyList { get; set; } = null!;
 }
