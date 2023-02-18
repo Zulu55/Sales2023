@@ -5,19 +5,21 @@
     @if(Loading is null)
     {
         <div class="align-items-center">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif?20151024034921" />
+            <img src="https://i.gifer.com/origin/34/34338d26023e5515f6cc8969aa027bca_w200.gif"/>
         </div>
     }
     else
     {
         @Loading
     }
-} 
+}
 else if(MyList.Count == 0)
 {
     @if(NoRecords is null)
     {
-        <p>No hay registros para mostrar...</p>
+        <div class="align-items-center">
+            <p>No hay registros para mostrar.</p>
+        </div>
     }
     else
     {

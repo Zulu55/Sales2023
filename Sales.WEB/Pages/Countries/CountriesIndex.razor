@@ -3,7 +3,7 @@
 
 <h3>Países</h3>
 
-<a class="btn btn-primary" href="/countries/create">Nuevo País</a>
+<a class="btn btn-primary mb-3" href="/countries/create">Nuevo País</a>
 
 <GenericList MyList="Countries">
     <Body>
@@ -15,18 +15,18 @@
                 </tr>
             </thead>
             <tbody>
-                    @foreach (var country in Countries!)
-                    {
-                        <tr>
-                            <td>
-                                <a class="btn btn-warning">Editar</a>
-                                <button class="btn btn-danger">Borrar</button>
-                            </td>
-                            <td>
-                                @country.Name
-                            </td>
-                        </tr>   
-                    }
+                @foreach (var country in Countries!)
+                {
+                    <tr>
+                        <td>
+                            <a class="btn btn-warning">Editar</a>
+                            <button class="btn btn-danger">Borrar</button>
+                        </td>
+                        <td>
+                            @country.Name
+                        </td>
+                    </tr>
+                }
             </tbody>
         </table>
     </Body>
