@@ -26,7 +26,7 @@ namespace Sales.API.Controllers
         public async Task<IActionResult> GetAsync(int id)
         {
             var country = await _context.Countries.FirstOrDefaultAsync(x => x.Id == id);
-            if (country == null) 
+            if (country == null)
             {
                 return NotFound();
             }
