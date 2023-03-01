@@ -3,9 +3,9 @@
 @inject NavigationManager navigationManager
 @inject SweetAlertService sweetAlertService
 
-<h3>Crear País</h3>
+<h3>Crear Estado/Departamento</h3>
 
-<StateForm @ref="stateForm" State="state" OnValidSubmit="Create" ReturnAction="Return" />
+<StateForm @ref="stateForm" State="state" OnValidSubmit="CreateAsync" ReturnAction="Return" />
 
 @code {
     private State state = new();
@@ -14,7 +14,7 @@
     [Parameter]
     public int CountryId { get; set; }
 
-    private async Task Create()
+    private async Task CreateAsync()
     {
 
         state.CountryId = CountryId;
