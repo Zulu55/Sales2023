@@ -6,54 +6,62 @@
 
 <h3>Países</h3>
 
-<div class="mb-2" style="display: flex; flex-wrap:wrap; align-items: center;">
-    <div>
-        <a class="btn btn-primary" href="/countries/create">Nuevo País</a>
+@if (Countries is null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="mb-2" style="display: flex; flex-wrap:wrap; align-items: center;">
+        <div>
+            <a class="btn btn-primary" href="/countries/create">Nuevo País</a>
+        </div>
+        <div class="mx-2">
+            <input style="width: 400px;" type="text" class="form-control" id="titulo" placeholder="Buscar país..." @bind-value="Filter" />
+        </div>
+        <div>
+            <button type="button" class="btn btn-outline-primary" @onclick="ApplyFilterAsync">Filtrar</button>
+            <button type="button" class="btn btn-outline-danger" @onclick="CleanFilterAsync">Limpiar</button>
+        </div>
     </div>
-    <div class="mx-2">
-        <input style="width: 400px;" type="text" class="form-control" id="titulo" placeholder="Buscar país..." @bind-value="Filter" />
-    </div>
-    <div>
-        <button type="button" class="btn btn-outline-primary" @onclick="ApplyFilterAsync">Filtrar</button>
-        <button type="button" class="btn btn-outline-danger" @onclick="CleanFilterAsync">Limpiar</button>
-    </div>
-</div>
 
-<Pagination CurrentPage="currentPage"
+    <Pagination CurrentPage="currentPage"
             TotalPages="totalPages"
             SelectedPage="SelectedPage" />
 
-<GenericList MyList="Countries">
-    <Body>
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>País</th>
-                    <th style="width:220px">Estados / Departamentos</th>
-                    <th style="width:260px"></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var country in Countries!)
-                {
+    <GenericList MyList="Countries">
+        <Body>
+            <table class="table table-striped">
+                <thead>
                     <tr>
-                        <td>
-                            @country.Name
-                        </td>
-                        <td>
-                            @country.StatesNumber
-                        </td>
-                        <td>
-                            <a class="btn btn-info" href="/countries/details/@country.Id">Detalles</a>
-                            <a class="btn btn-warning" href="/countries/edit/@country.Id">Editar</a>
-                            <button class="btn btn-danger" @onclick=@(() => DeleteAsync(country.Id))>Borrar</button>
-                        </td>
+                        <th>País</th>
+                        <th style="width:220px">Estados / Departamentos</th>
+                        <th style="width:260px"></th>
                     </tr>
-                }
-            </tbody>
-        </table>
-    </Body>
-</GenericList>
+                </thead>
+                <tbody>
+                    @foreach (var country in Countries!)
+                    {
+                        <tr>
+                            <td>
+                                @country.Name
+                            </td>
+                            <td>
+                                @country.StatesNumber
+                            </td>
+                            <td>
+                                <a class="btn btn-info" href="/countries/details/@country.Id">Detalles</a>
+                                <a class="btn btn-warning" href="/countries/edit/@country.Id">Editar</a>
+                                <button class="btn btn-danger" @onclick=@(() => DeleteAsync(country.Id))>Borrar</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </Body>
+    </GenericList>
+}
+
 
 @code {
     public List<Country>? Countries { get; set; }
@@ -100,10 +108,26 @@
             url2 = $"api/countries/totalPages?filter={Filter}";
         }
 
-        var responseHppt = await repository.Get<List<Country>>(url1);
-        var responseHppt2 = await repository.Get<int>(url2);
-        Countries = responseHppt.Response!;
-        totalPages = responseHppt2.Response!;
+
+        try
+        {
+            var responseHppt = await repository.Get<List<Country>>(url1);
+            if (responseHppt.Error)
+            {
+                var message = await responseHppt.GetErrorMessageAsync();
+                await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);
+                return;
+            }
+
+            var responseHppt2 = await repository.Get<int>(url2);
+            Countries = responseHppt.Response!;
+            totalPages = responseHppt2.Response!;
+        }
+        catch (Exception ex)
+        {
+            await sweetAlertService.FireAsync("Error", ex.Message, SweetAlertIcon.Error);
+        }
+
     }
 
     private async Task DeleteAsync(int id)

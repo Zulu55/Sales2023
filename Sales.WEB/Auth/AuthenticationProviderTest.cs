@@ -15,7 +15,7 @@ namespace Sales.WEB.Auth
                 new Claim(ClaimTypes.Name, "zulu@yopmail.com"),
                 new Claim(ClaimTypes.Role, "Admin")
             }, authenticationType: "test");
-            return await Task.FromResult(new AuthenticationState(new ClaimsPrincipal(anonimous)));
+            return await Task.FromResult(new AuthenticationState(new ClaimsPrincipal(zuluUser)));
         }
     }
 }
