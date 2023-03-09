@@ -1,0 +1,49 @@
+﻿@page "/Login"
+@inject IRepository repository
+@inject SweetAlertService sweetAlertService
+@inject NavigationManager navigationManager
+@inject ILoginService loginService
+
+<h3>Iniciar Sesión</h3>
+
+<EditForm Model="loginDTO" OnValidSubmit="LoginAsync">
+    <DataAnnotationsValidator />
+
+    <div class="row">
+        <div class="col-4">
+            <div class="mb-3">
+                <label>Email:</label>
+                <div>
+                    <InputText class="form-control" @bind-Value="@loginDTO.Email" />
+                    <ValidationMessage For="@(() => loginDTO.Email)" />
+                </div>
+            </div>
+            <div class="mb-3">
+                <label>Contraseña:</label>
+                <div>
+                    <InputText type="password" class="form-control" @bind-Value="@loginDTO.Password" />
+                    <ValidationMessage For="@(() => loginDTO.Password)" />
+                </div>
+            </div>
+            <button class="btn btn-primary" type="submit">Iniciar Sesión</button>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    private LoginDTO loginDTO = new();
+
+    private async Task LoginAsync()
+    {
+        var responseHttp = await repository.Post<LoginDTO, TokenDTO>("/api/accounts/Login", loginDTO);
+        if (responseHttp.Error)
+        {
+            var message = await responseHttp.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);
+            return;
+        }
+
+        await loginService.LoginAsync(responseHttp.Response!.Token);
+        navigationManager.NavigateTo("/");
+    }
+}
