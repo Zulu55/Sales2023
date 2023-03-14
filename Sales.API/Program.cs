@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Sales.API.Data;
 using Sales.API.Helpers;
+using Sales.API.Helpers.Sales.API.Helpers;
 using Sales.API.Services;
 using Sales.Shared.Entities;
 using System.Text;
@@ -52,6 +53,7 @@ builder.Services.AddDbContext<DataContext>(x => x.UseSqlServer("name=DockerConne
 builder.Services.AddTransient<SeedDb>();
 builder.Services.AddScoped<IApiService, ApiService>();
 builder.Services.AddScoped<IUserHelper, UserHelper>();
+builder.Services.AddScoped<IFileStorage, FileStorage>();
 
 builder.Services.AddIdentity<User, IdentityRole>(x =>
 {

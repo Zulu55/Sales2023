@@ -16,17 +16,28 @@ namespace Sales.API.Controllers
     {
         private readonly IUserHelper _userHelper;
         private readonly IConfiguration _configuration;
+        private readonly IFileStorage _fileStorage;
+        private readonly string _container;
 
-        public AccountsController(IUserHelper userHelper, IConfiguration configuration)
+        public AccountsController(IUserHelper userHelper, IConfiguration configuration, IFileStorage fileStorage)
         {
             _userHelper = userHelper;
             _configuration = configuration;
+            _fileStorage = fileStorage;
+            _container = "users";
         }
 
         [HttpPost("CreateUser")]
         public async Task<ActionResult> CreateUser([FromBody] UserDTO model)
         {
             User user = model;
+
+            if (!string.IsNullOrEmpty(model.Photo))
+            {
+                var photoUser = Convert.FromBase64String(model.Photo);
+                model.Photo = await _fileStorage.SaveFileAsync(photoUser, ".jpg", _container);
+            }
+
             var result = await _userHelper.AddUserAsync(user, model.Password);
             if (result.Succeeded)
             {
