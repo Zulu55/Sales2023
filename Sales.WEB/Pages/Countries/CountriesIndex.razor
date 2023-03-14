@@ -4,62 +4,67 @@
 @inject SweetAlertService sweetAlertService
 @attribute [Authorize(Roles = "Admin")]
 
-<h3>Países</h3>
-
 @if (Countries is null)
 {
-    <p>Cargando...</p>
+    <div class="spinner" />
 }
 else
 {
-    <div class="mb-2" style="display: flex; flex-wrap:wrap; align-items: center;">
-        <div>
-            <a class="btn btn-primary" href="/countries/create">Nuevo País</a>
+    <div class="card">
+        <div class="card-header">
+            <span>
+                <i class="oi oi-globe"/> Países
+                <a class="btn btn-sm btn-primary float-end" href="/countries/create"><i class="oi oi-plus"/> Adicionar País</a>
+            </span>
         </div>
-        <div class="mx-2">
-            <input style="width: 400px;" type="text" class="form-control" id="titulo" placeholder="Buscar país..." @bind-value="Filter" />
-        </div>
-        <div>
-            <button type="button" class="btn btn-outline-primary" @onclick="ApplyFilterAsync">Filtrar</button>
-            <button type="button" class="btn btn-outline-danger" @onclick="CleanFilterAsync">Limpiar</button>
+        <div class="card-body">
+            <div class="mb-2" style="display: flex; flex-wrap:wrap; align-items: center;">
+                <div>
+                    <input style="width: 400px;" type="text" class="form-control" id="titulo" placeholder="Buscar país..." @bind-value="Filter" />
+                </div>
+                <div class="mx-1">
+                    <button type="button" class="btn btn-outline-primary" @onclick="ApplyFilterAsync"><i class="oi oi-layers" /> Filtrar</button>
+                    <button type="button" class="btn btn-outline-danger" @onclick="CleanFilterAsync"><i class="oi oi-ban" /> Limpiar</button>
+                </div>
+            </div>
+
+            <Pagination CurrentPage="currentPage"
+                    TotalPages="totalPages"
+                    SelectedPage="SelectedPage" />
+
+            <GenericList MyList="Countries">
+                <Body>
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>País</th>
+                                <th style="width:220px">Estados / Departamentos</th>
+                                <th style="width:280px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var country in Countries!)
+                            {
+                                <tr>
+                                    <td>
+                                        @country.Name
+                                    </td>
+                                    <td>
+                                        @country.StatesNumber
+                                    </td>
+                                    <td>
+                                        <a href="/countries/details/@country.Id" class="btn btn-info btn-sm"><i class="oi oi-list" /> Detalles</a>
+                                        <a href="/countries/edit/@country.Id" class="btn btn-warning btn-sm"><i class="oi oi-pencil" /> Editar</a>
+                                        <button class="btn btn-danger btn-sm" @onclick=@(() => DeleteAsync(country.Id))><i class="oi oi-trash" /> Borrar</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </Body>
+            </GenericList>
         </div>
     </div>
-
-    <Pagination CurrentPage="currentPage"
-            TotalPages="totalPages"
-            SelectedPage="SelectedPage" />
-
-    <GenericList MyList="Countries">
-        <Body>
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>País</th>
-                        <th style="width:220px">Estados / Departamentos</th>
-                        <th style="width:260px"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var country in Countries!)
-                    {
-                        <tr>
-                            <td>
-                                @country.Name
-                            </td>
-                            <td>
-                                @country.StatesNumber
-                            </td>
-                            <td>
-                                <a class="btn btn-info" href="/countries/details/@country.Id">Detalles</a>
-                                <a class="btn btn-warning" href="/countries/edit/@country.Id">Editar</a>
-                                <button class="btn btn-danger" @onclick=@(() => DeleteAsync(country.Id))>Borrar</button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </Body>
-    </GenericList>
 }
 
 
@@ -151,7 +156,7 @@ else
         var responseHttp = await repository.Delete($"/api/countries/{id}");
         if (responseHttp.Error)
         {
-            if(responseHttp.HttpResponseMessage.StatusCode != HttpStatusCode.NotFound)
+            if (responseHttp.HttpResponseMessage.StatusCode != HttpStatusCode.NotFound)
             {
                 var message = await responseHttp.GetErrorMessageAsync();
                 await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);

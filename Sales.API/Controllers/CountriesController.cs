@@ -6,7 +6,6 @@ using Sales.API.Data;
 using Sales.API.Helpers;
 using Sales.Shared.DTOs;
 using Sales.Shared.Entities;
-using System.Linq;
 
 namespace Sales.API.Controllers
 {
@@ -22,11 +21,18 @@ namespace Sales.API.Controllers
             _context = context;
         }
 
+        [AllowAnonymous]
+        [HttpGet("combo")]
+        public async Task<ActionResult> GetCombo()
+        {
+            return Ok(await _context.Countries.ToListAsync());
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetAsync([FromQuery] PaginationDTO pagination)
         {
             var queryable = _context.Countries
-                .Include(x => x.States)     
+                .Include(x => x.States)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(pagination.Filter))
@@ -97,7 +103,7 @@ namespace Sales.API.Controllers
 
                 return BadRequest(dbUpdateException.Message);
             }
-            catch(Exception exception) 
+            catch (Exception exception)
             {
                 return BadRequest(exception.Message);
             }
