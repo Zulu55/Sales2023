@@ -4,31 +4,39 @@
 @inject NavigationManager navigationManager
 @inject ILoginService loginService
 
-<h3>Iniciar Sesión</h3>
+<div class="row">
+    <div class="col-md-4  offset-md-4">
 
-<EditForm Model="loginDTO" OnValidSubmit="LoginAsync">
-    <DataAnnotationsValidator />
+        <EditForm Model="loginDTO" OnValidSubmit="LoginAsync">
+            <DataAnnotationsValidator />
 
-    <div class="row">
-        <div class="col-4">
-            <div class="mb-3">
-                <label>Email:</label>
-                <div>
-                    <InputText class="form-control" @bind-Value="@loginDTO.Email" />
-                    <ValidationMessage For="@(() => loginDTO.Email)" />
+            <div class="card bg-light">
+                <div class="card-header justify-content-center">
+                    <span>
+                        <i class="oi oi-account-login" /> Iniciar Sesión
+                        <button class="btn btn-sm btn-primary float-end" type="submit"><i class="oi oi-check" /> Iniciar Sesión</button>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label>Email:</label>
+                        <div>
+                            <InputText class="form-control" @bind-Value="@loginDTO.Email" />
+                            <ValidationMessage For="@(() => loginDTO.Email)" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Contraseña:</label>
+                        <div>
+                            <InputText type="password" class="form-control" @bind-Value="@loginDTO.Password" />
+                            <ValidationMessage For="@(() => loginDTO.Password)" />
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="mb-3">
-                <label>Contraseña:</label>
-                <div>
-                    <InputText type="password" class="form-control" @bind-Value="@loginDTO.Password" />
-                    <ValidationMessage For="@(() => loginDTO.Password)" />
-                </div>
-            </div>
-            <button class="btn btn-primary" type="submit">Iniciar Sesión</button>
-        </div>
+        </EditForm>
     </div>
-</EditForm>
+</div>
 
 @code {
     private LoginDTO loginDTO = new();
