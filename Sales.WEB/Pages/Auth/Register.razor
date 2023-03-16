@@ -203,7 +203,7 @@
     {
         userDTO.UserName = userDTO.Email;
         userDTO.UserType = UserType.User;
-        var responseHttp = await repository.Post<UserDTO, TokenDTO>("/api/accounts/CreateUser", userDTO);
+        var responseHttp = await repository.Post<UserDTO>("/api/accounts/CreateUser", userDTO);
         if (responseHttp.Error)
         {
             var message = await responseHttp.GetErrorMessageAsync();
@@ -211,7 +211,7 @@
             return;
         }
 
-        await loginService.LoginAsync(responseHttp.Response!.Token);
+        await sweetAlertService.FireAsync("Confirmación", "Su cuenta ha sido creada con éxito. Se te ha enviado un correo electrónico con las instrucciones para activar tu usuario.", SweetAlertIcon.Info);
         navigationManager.NavigateTo("/");
     }
 }
