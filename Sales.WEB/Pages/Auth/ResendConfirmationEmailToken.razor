@@ -1,0 +1,55 @@
+﻿@page "/ResendToken"
+@inject IRepository repository
+@inject SweetAlertService sweetAlertService
+@inject NavigationManager navigationManager
+
+@if (loading)
+{
+    <div class="spinner" />
+}
+<div class="row">
+    <div class="col-6">
+        <EditForm Model="emailDTO" OnValidSubmit="ResendConfirmationEmailTokenAsync">
+            <DataAnnotationsValidator />
+            <div class="card">
+                <div class="card-header">
+                    <span>
+                        <i class="oi oi-key" /> Reenviar correo de confirmación de contraseña
+                        <button class="btn btn-sm btn-primary float-end mx-2" type="submit"><i class="oi oi-loop-square" /> Reenviar</button>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label>Email:</label>
+                        <div>
+                            <InputText class="form-control" @bind-Value="@emailDTO.Email" />
+                            <ValidationMessage For="@(() => emailDTO.Email)" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private EmailDTO emailDTO = new();
+    private bool loading;
+
+    private async Task ResendConfirmationEmailTokenAsync()
+    {
+        loading = true;
+        var responseHttp = await repository.Post("/api/accounts/ResedToken", emailDTO);
+        if (responseHttp.Error)
+        {
+            var message = await responseHttp.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);
+            loading = false;
+            return;
+        }
+
+        loading = false;
+        await sweetAlertService.FireAsync("Confirmación", "Se te ha enviado un correo electrónico de nuevo con las instrucciones para activar tu usuario.", SweetAlertIcon.Info);
+        navigationManager.NavigateTo("/");
+    }
+}
