@@ -53,6 +53,26 @@ namespace Sales.API.Helpers
             return user!;
         }
 
+        public async Task<User> GetUserAsync(Guid userId)
+        {
+            var user = await _context.Users
+                .Include(u => u.City!)
+                .ThenInclude(c => c.State!)
+                .ThenInclude(s => s.Country!)
+                .FirstOrDefaultAsync(x => x.Id == userId.ToString());
+            return user!;
+        }
+
+        public async Task<IdentityResult> ChangePasswordAsync(User user, string currentPassword, string newPassword)
+        {
+            return await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+        }
+
+        public async Task<IdentityResult> UpdateUserAsync(User user)
+        {
+            return await _userManager.UpdateAsync(user);
+        }
+
         public async Task<bool> IsUserInRoleAsync(User user, string roleName)
         {
             return await _userManager.IsInRoleAsync(user, roleName);
