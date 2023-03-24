@@ -1,0 +1,168 @@
+﻿@inject SweetAlertService sweetAlertService
+
+<NavigationLock OnBeforeInternalNavigation="OnBeforeInternalNavigation"></NavigationLock>
+
+<EditForm EditContext="editContext" OnValidSubmit="OnDataAnnotationsValidatedAsync">
+    <DataAnnotationsValidator />
+
+    <div class="card">
+        <div class="card-header">
+            <span>
+                <i class="oi oi-star" /> Crear Nuevo Producto
+                <a class="btn btn-sm btn-success float-end" href="/products"><i class="oi oi-arrow-thick-left" /> Regresar</a>
+                <button class="btn btn-sm btn-primary float-end mx-2" type="submit"><i class="oi oi-check" /> Guardar Cambios</button>
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-6">
+                    <div class="mb-3">
+                        <label>Nombre:</label>
+                        <div>
+                            <InputText class="form-control" @bind-Value="@ProductDTO.Name" />
+                            <ValidationMessage For="@(() => ProductDTO.Name)" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Descripción:</label>
+                        <div>
+                            <InputText class="form-control" @bind-Value="@ProductDTO.Description" />
+                            <ValidationMessage For="@(() => ProductDTO.Description)" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Precio:</label>
+                        <div>
+                            <InputNumber class="form-control" @bind-Value="@ProductDTO.Price" />
+                            <ValidationMessage For="@(() => ProductDTO.Price)" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Inventario:</label>
+                        <div>
+                            <InputNumber class="form-control" @bind-Value="@ProductDTO.Stock" />
+                            <ValidationMessage For="@(() => ProductDTO.Stock)" />
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="mb-3">
+                        <label>Categorías:</label>
+                        <div>
+                            <MultipleSelector NonSelected="nonSelected" Selected="selected" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <InputImg Label="Foto" ImageSelected="ImageSelected" ImageURL="@imageUrl" />
+                    </div>
+                    @if (IsEdit)
+                    {
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-primary" @onclick="AddImageAction"><i class="oi oi-plus" /> Agregar Imagenes</button>
+                            <button type="button" class="btn btn-outline-danger" @onclick="RemoveImageAction"><i class="oi oi-trash" /> Eliminar Última Imagén</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@*@if (IsEdit && ProductDTO.ProductImages is not null)
+{
+    <CarouselView Images="ProductDTO.ProductImages" />
+}*@
+
+@code {
+    private EditContext editContext = null!;
+    private List<MultipleSelectorModel> selected { get; set; } = new();
+    private List<MultipleSelectorModel> nonSelected { get; set; } = new();
+    private string? imageUrl;
+
+    [Parameter]
+    public bool IsEdit { get; set; } = false;
+
+    [EditorRequired]
+    [Parameter]
+    public ProductDTO ProductDTO { get; set; } = null!;
+
+    [EditorRequired]
+    [Parameter]
+    public EventCallback OnValidSubmit { get; set; }
+
+    [EditorRequired]
+    [Parameter]
+    public EventCallback ReturnAction { get; set; }
+
+    [Parameter]
+    public EventCallback AddImageAction { get; set; }
+
+    [Parameter]
+    public EventCallback RemoveImageAction { get; set; }
+
+    [Parameter]
+    public List<Category> SelectedCategories { get; set; } = new();
+
+    [Parameter]
+    [EditorRequired]
+    public List<Category> NonSelectedCategories { get; set; } = new();
+
+    public bool FormPostedSuccessfully { get; set; } = false;
+
+    protected override void OnInitialized()
+    {
+        editContext = new(ProductDTO);
+
+        selected = SelectedCategories.Select(x => new MultipleSelectorModel(x.Id.ToString(), x.Name)).ToList();
+        nonSelected = NonSelectedCategories.Select(x => new MultipleSelectorModel(x.Id.ToString(), x.Name)).ToList();
+    }
+
+    private void ImageSelected(string imagenBase64)
+    {
+        if (ProductDTO.ProductImages is null)
+        {
+            ProductDTO.ProductImages = new List<string>();
+        }
+
+        ProductDTO.ProductImages!.Add(imagenBase64);
+        imageUrl = null;
+    }
+
+    private async Task OnDataAnnotationsValidatedAsync()
+    {
+        ProductDTO.ProductCategoryIds = selected.Select(x => int.Parse(x.Key)).ToList();
+        await OnValidSubmit.InvokeAsync();
+    }
+
+    private async Task OnBeforeInternalNavigation(LocationChangingContext context)
+    {
+        var formWasEdited = editContext.IsModified();
+
+        if (!formWasEdited)
+        {
+            return;
+        }
+
+        if (FormPostedSuccessfully)
+        {
+            return;
+        }
+
+        var result = await sweetAlertService.FireAsync(new SweetAlertOptions
+            {
+                Title = "Confirmación",
+                Text = "¿Deseas abandonar la página y perder los cambios?",
+                Icon = SweetAlertIcon.Warning,
+                ShowCancelButton = true
+            });
+
+        var confirm = !string.IsNullOrEmpty(result.Value);
+
+        if (confirm)
+        {
+            return;
+        }
+
+        context.PreventNavigation();
+    }
+}

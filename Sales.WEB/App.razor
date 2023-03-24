@@ -1,21 +1,23 @@
-﻿<Router AppAssembly="@typeof(App).Assembly">
-    <Found Context="routeData">
-        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" >
-            <Authorizing>
-                <p>Autorizando...</p>
-            </Authorizing>
-            <NotAuthorized>
-                <p>No estas autorizado para ver este contenido...</p>
-            </NotAuthorized>
-        </AuthorizeRouteView>
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <CascadingAuthenticationState>
-            <PageTitle>No encontrado</PageTitle>
-            <LayoutView Layout="@typeof(MainLayout)">
-                <p role="alert">Lo sentimos no hay nada en esta ruta.</p>
-            </LayoutView>
-        </CascadingAuthenticationState>
-    </NotFound>
-</Router>
+﻿<CascadingBlazoredModal Position="ModalPosition.Middle" Size="ModalSize.Large" HideHeader="true" DisableBackgroundCancel="true" AnimationType="ModalAnimationType.FadeInOut">
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <Authorizing>
+                    <p>Autorizando...</p>
+                </Authorizing>
+                <NotAuthorized>
+                    <p>No estas autorizado para ver este contenido...</p>
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <CascadingAuthenticationState>
+                <PageTitle>No encontrado</PageTitle>
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <p role="alert">Lo sentimos no hay nada en esta ruta.</p>
+                </LayoutView>
+            </CascadingAuthenticationState>
+        </NotFound>
+    </Router>
+</CascadingBlazoredModal>

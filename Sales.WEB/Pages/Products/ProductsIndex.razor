@@ -1,28 +1,28 @@
-﻿@page "/categories"
+﻿@page "/products"
 @inject IRepository repository
 @inject NavigationManager navigationManager
 @inject SweetAlertService sweetAlertService
 @attribute [Authorize(Roles = "Admin")]
 
-@if (categories is null)
+@if (Products is null)
 {
     <div class="spinner" />
 }
 else
 {
-    <GenericList MyList="categories">
+    <GenericList MyList="Products">
         <Body>
             <div class="card">
                 <div class="card-header">
                     <span>
-                        <i class="oi oi-list"></i> Categorías
-                        <a class="btn btn-sm btn-primary float-end" @onclick=@(() => ShowModal())><i class="oi oi-plus"></i> Adicionar Categoría</a>
+                        <i class="oi oi-star" /> Productos
+                        <a class="btn btn-sm btn-primary float-end" href="/products/create"><i class="oi oi-plus" /> Nuevo Producto</a>
                     </span>
                 </div>
                 <div class="card-body">
                     <div class="mb-2" style="display: flex; flex-wrap:wrap; align-items: center;">
                         <div>
-                            <input style="width: 400px;" type="text" class="form-control" id="titulo" placeholder="Buscar categoría..." @bind-value="Filter" />
+                            <input style="width: 400px;" type="text" class="form-control" id="titulo" placeholder="Buscar producto..." @bind-value="Filter" />
                         </div>
                         <div class="mx-1">
                             <button type="button" class="btn btn-outline-primary" @onclick="ApplyFilterAsync"><i class="oi oi-layers" /> Filtrar</button>
@@ -37,20 +37,44 @@ else
                     <table class="table table-striped">
                         <thead>
                             <tr>
-                                <th>Categoría</th>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Precio</th>
+                                <th>Inventario</th>
+                                <th>Categorías</th>
+                                <th>Imagenes</th>
+                                <th>Imagen Principal</th>
                                 <th style="width:200px"></th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var category in categories)
+                            @foreach (var product in Products)
                             {
                                 <tr>
                                     <td>
-                                        @category.Name
+                                        @product.Name
                                     </td>
                                     <td>
-                                        <a @onclick=@(() => ShowModal(category.Id, true)) class="btn btn-warning"><i class="oi oi-pencil" /> Editar</a>
-                                        <button class="btn btn-danger" @onclick=@(() => Delete(category.Id))><i class="oi oi-trash" /> Borrar</button>
+                                        @product.Description
+                                    </td>
+                                    <td>
+                                        @($"{product.Price:C2}")
+                                    </td>
+                                    <td>
+                                        @($"{product.Stock:N2}")
+                                    </td>
+                                    <td>
+                                        @product.ProductCategoriesNumber
+                                    </td>
+                                    <td>
+                                        @product.ProductImagesNumber
+                                    </td>
+                                    <td>
+                                        <img src="@product.MainImage" style="width:100px;" />
+                                    </td>
+                                    <td>
+                                        <a href="/products/edit/@product.Id" class="btn btn-warning"><i class="oi oi-pencil" /> Editar</a>
+                                        <button class="btn btn-danger" @onclick=@(() => Delete(product.Id))><i class="oi oi-trash" /> Borrar</button>
                                     </td>
                                 </tr>
                             }
@@ -63,12 +87,10 @@ else
 }
 
 @code {
-    public List<Category>? categories { get; set; }
     private int currentPage = 1;
     private int totalPages;
 
-    [CascadingParameter]
-    IModalService Modal { get; set; } = default!;
+    public List<Product>? Products { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery]
@@ -82,27 +104,6 @@ else
     {
         await LoadAsync();
     }
-
-    private async Task ShowModal(int id = 0, bool isEdit = false)
-    {
-        IModalReference modalReference;
-
-        if (isEdit)
-        {
-            modalReference = Modal.Show<CategoryEdit>(string.Empty, new ModalParameters().Add("CategoryId", id));
-        }
-        else
-        {
-            modalReference = Modal.Show<CategoryCreate>();
-        }
-
-        var result = await modalReference.Result;
-        if (result.Confirmed)
-        {
-            await LoadAsync();
-        }
-    }
-
 
     private async Task SelectedPageAsync(int page)
     {
@@ -122,20 +123,20 @@ else
 
         if (string.IsNullOrEmpty(Filter))
         {
-            url1 = $"api/categories?page={page}";
-            url2 = $"api/categories/totalPages";
+            url1 = $"api/products?page={page}";
+            url2 = $"api/products/totalPages";
         }
         else
         {
-            url1 = $"api/categories?page={page}&filter={Filter}";
-            url2 = $"api/categories/totalPages?filter={Filter}";
+            url1 = $"api/products?page={page}&filter={Filter}";
+            url2 = $"api/products/totalPages?filter={Filter}";
         }
 
         try
         {
-            var responseHppt = await repository.Get<List<Category>>(url1);
+            var responseHppt = await repository.Get<List<Product>>(url1);
             var responseHppt2 = await repository.Get<int>(url2);
-            categories = responseHppt.Response!;
+            Products = responseHppt.Response!;
             totalPages = responseHppt2.Response!;
         }
         catch (Exception ex)
@@ -144,7 +145,7 @@ else
         }
     }
 
-    private async Task Delete(int categoryId)
+    private async Task Delete(int productId)
     {
         var result = await sweetAlertService.FireAsync(new SweetAlertOptions
             {
@@ -161,24 +162,22 @@ else
             return;
         }
 
-        var responseHTTP = await repository.Delete($"api/categories/{categoryId}");
+        var responseHTTP = await repository.Delete($"api/products/{productId}");
 
         if (responseHTTP.Error)
         {
             if (responseHTTP.HttpResponseMessage.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 navigationManager.NavigateTo("/");
+                return;
             }
-            else
-            {
-                var mensajeError = await responseHTTP.GetErrorMessageAsync();
-                await sweetAlertService.FireAsync("Error", mensajeError, SweetAlertIcon.Error);
-            }
+
+            var mensajeError = await responseHTTP.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", mensajeError, SweetAlertIcon.Error);
+            return;
         }
-        else
-        {
-            await LoadAsync();
-        }
+
+        await LoadAsync(1);
     }
 
     private async Task CleanFilterAsync()
