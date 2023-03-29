@@ -124,19 +124,33 @@ namespace Sales.API.Controllers
             }
 
             [HttpPut]
-            public async Task<ActionResult> PutAsync(Product product)
+            public async Task<ActionResult> PutAsync(ProductDTO productDTO)
             {
                 try
                 {
+                    var product = await _context.Products
+                        .Include(x => x.ProductCategories)
+                        .FirstOrDefaultAsync(x => x.Id == productDTO.Id);
+                    if (product == null)
+                    {
+                        return NotFound();
+                    }
+
+                    product.Name = productDTO.Name;
+                    product.Description = productDTO.Description;
+                    product.Price = productDTO.Price;
+                    product.Stock = productDTO.Stock;
+                    product.ProductCategories = productDTO.ProductCategoryIds!.Select(x => new ProductCategory { CategoryId = x }).ToList();
+
                     _context.Update(product);
                     await _context.SaveChangesAsync();
-                    return Ok(product);
+                    return Ok(productDTO);
                 }
                 catch (DbUpdateException dbUpdateException)
                 {
                     if (dbUpdateException.InnerException!.Message.Contains("duplicate"))
                     {
-                        return BadRequest("Ya existe un producto con el mismo nombre.");
+                        return BadRequest("Ya existe una ciudad con el mismo nombre.");
                     }
 
                     return BadRequest(dbUpdateException.Message);
