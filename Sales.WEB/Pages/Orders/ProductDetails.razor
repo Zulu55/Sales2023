@@ -1,0 +1,170 @@
+﻿@page "/orders/details/{ProductId:int}"
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService sweetAlertService
+
+@if (loading)
+{
+    <div class="spinner" />
+}
+else
+{
+    <div class="card">
+        <div class="card-header">
+            <span>
+                <i class="oi oi-star" /> @product!.Name
+                <a class="btn btn-sm btn-success float-end" href="/"><i class="oi oi-arrow-thick-left" /> Regresar</a>
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-6">
+                    <div class="mb-3">
+                        <label>Nombre:</label>
+                        <div>
+                            <b>@product.Name</b>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Descripción:</label>
+                        <div>
+                            <b>@product.Description</b>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Precio:</label>
+                        <div>
+                            <b>@($"{product.Price:C2}")</b>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Inventario:</label>
+                        <div>
+                            <b>@($"{product.Stock:N2}")</b>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Categorías:</label>
+                        <div>
+                            @foreach (var category in categories!)
+                            {
+                                <div class="mx-2">
+                                    <b>@category</b>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <EditForm Model="TemporalSaleDTO" OnValidSubmit="AddToCartAsync">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label>Cantidad:</label>
+                            <div>
+                                <InputNumber class="form-control" @bind-Value="@TemporalSaleDTO.Quantity" />
+                                <ValidationMessage For="@(() => TemporalSaleDTO.Quantity)" />
+                            </div>
+                            <label>Comentarios:</label>
+                            <div>
+                                <InputText class="form-control" @bind-Value="@TemporalSaleDTO.Remarks" />
+                                <ValidationMessage For="@(() => TemporalSaleDTO.Remarks)" />
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" type="submit"><i class="oi oi-plus" /> Agregar Al Carro de Compras</button>
+                    </EditForm>
+
+                </div>
+            </div>
+            <CarouselView Images="images" />
+        </div>
+    </div>
+}
+
+@code {
+    private List<string>? categories;
+    private List<string>? images;
+    private bool loading = true;
+    private Product? product;
+    private bool isAuthenticated;
+
+    [Parameter]
+    public int ProductId { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; } = null!;
+
+    public TemporalSaleDTO TemporalSaleDTO { get; set; } = new();
+
+    protected async override Task OnParametersSetAsync()
+    {
+        await CheckIsAuthenticatedAsync();
+    }
+
+    private async Task CheckIsAuthenticatedAsync()
+    {
+        var authenticationState = await authenticationStateTask;
+        isAuthenticated = authenticationState.User.Identity!.IsAuthenticated;
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        await LoadProductAsync();
+    }
+
+    private async Task LoadProductAsync()
+    {
+        loading = true;
+        var httpResponse = await repository.Get<Product>($"/api/products/{ProductId}");
+
+        if (httpResponse.Error)
+        {
+            loading = false;
+            var message = await httpResponse.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);
+            return;
+        }
+
+        product = httpResponse.Response!;
+        categories = product.ProductCategories!.Select(x => x.Category.Name).ToList();
+        images = product.ProductImages!.Select(x => x.Image).ToList();
+        loading = false;
+    }
+
+    public async Task AddToCartAsync()
+    {
+        if (!isAuthenticated)
+        {
+            navigationManager.NavigateTo("/Login");
+            var toast1 = sweetAlertService.Mixin(new SweetAlertOptions
+                {
+                    Toast = true,
+                    Position = SweetAlertPosition.TopEnd,
+                    ShowConfirmButton = false,
+                    Timer = 5000
+                });
+            await toast1.FireAsync(icon: SweetAlertIcon.Error, message: "Debes haber iniciado sesión para poder agregar productos al carro de compras.");
+            return;
+        }
+
+        TemporalSaleDTO.ProductId = ProductId;
+
+        var httpResponse = await repository.Post("/api/temporalSales", TemporalSaleDTO);
+        if (httpResponse.Error)
+        {
+            var message = await httpResponse.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);
+            return;
+        }
+
+
+        var toast2 = sweetAlertService.Mixin(new SweetAlertOptions
+            {
+                Toast = true,
+                Position = SweetAlertPosition.TopEnd,
+                ShowConfirmButton = false,
+                Timer = 5000
+            });
+        await toast2.FireAsync(icon: SweetAlertIcon.Success, message: "Producto agregado al carro de compras.");
+        navigationManager.NavigateTo("/");
+    }
+}

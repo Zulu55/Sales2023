@@ -1,7 +1,167 @@
 ﻿@page "/Orders/ShowCart"
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService sweetAlertService
+@attribute [Authorize(Roles = "Admin, User")]
 
-<h3>ShowCart</h3>
+@if (temporalSales is null)
+{
+    <div class="spinner" />
+}
+else
+{
+    <GenericList MyList="temporalSales">
+        <Body>
+            <div class="card">
+                <div class="card-header">
+                    <span>
+                        <i class="oi oi-cart" /> Carro de Compras
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-4">
+                            <h3>Cantidad productos: <strong>@($"{sumQuantity:N2}")</strong></h3>
+                        </div>
+                        <div class="col-4">
+                            <h3>Valor: <strong>@($"{sumValue:C2}")</strong></h3>
+                        </div>
+                    </div>
+                    <EditForm Model="SaleDTO" OnValidSubmit="ConfirmOrderAsync">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label>Comentarios:</label>
+                            <div>
+                                <InputText class="form-control" @bind-Value="@SaleDTO.Remarks" />
+                                <ValidationMessage For="@(() => SaleDTO.Remarks)" />
+                            </div>
+                        </div>
+                        <button class="btn btn-primary mb-3" type="submit"><i class="oi oi-check" /> Confirmar Pedido</button>
+                    </EditForm>
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Cantidad</th>
+                                <th>Precio</th>
+                                <th>Valor</th>
+                                <th>Comentarios</th>
+                                <th>Imagén</th>
+                                <th style="width:200px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var temporalSale in temporalSales)
+                            {
+                                <tr>
+                                    <td>
+                                        @temporalSale.Product!.Name
+                                    </td>
+                                    <td>
+                                        @temporalSale.Product!.Description
+                                    </td>
+                                    <td>
+                                        @($"{temporalSale.Quantity:N2}")
+                                    </td>
+                                    <td>
+                                        @($"{temporalSale.Product!.Price:C2}")
+                                    </td>
+                                    <td>
+                                        @($"{temporalSale.Value:C2}")
+                                    </td>
+                                    <td>
+                                        @temporalSale.Remarks
+                                    </td>
+                                    <td>
+                                        <img src="@temporalSale.Product!.MainImage" style="width:100px;" />
+                                    </td>
+                                    <td>
+                                        <a href="/ModifyTemporalSale/@temporalSale.Id" class="btn btn-warning"><i class="oi oi-pencil" /> Editar</a>
+                                        <button class="btn btn-danger" @onclick=@(() => Delete(temporalSale.Id))><i class="oi oi-trash" /> Borrar</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </Body>
+    </GenericList>
+}
 
 @code {
+    public List<TemporalSale>? temporalSales { get; set; }
+    private float sumQuantity;
+    private decimal sumValue;
 
+    public SaleDTO SaleDTO { get; set; } = new();
+
+    protected async override Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            var responseHppt = await repository.Get<List<TemporalSale>>("api/temporalSales");
+            temporalSales = responseHppt.Response!;
+            sumQuantity = temporalSales.Sum(x => x.Quantity);
+            sumValue = temporalSales.Sum(x => x.Value);
+        }
+        catch (Exception ex)
+        {
+            await sweetAlertService.FireAsync("Error", ex.Message, SweetAlertIcon.Error);
+        }
+    }
+
+    private void ConfirmOrderAsync()
+    {
+        //TODO: Pending to implement
+    }
+
+    private async Task Delete(int temporalSaleId)
+    {
+        var result = await sweetAlertService.FireAsync(new SweetAlertOptions
+            {
+                Title = "Confirmación",
+                Text = "¿Esta seguro que quieres borrar el registro?",
+                Icon = SweetAlertIcon.Question,
+                ShowCancelButton = true
+            });
+
+        var confirm = string.IsNullOrEmpty(result.Value);
+
+        if (confirm)
+        {
+            return;
+        }
+
+        var responseHTTP = await repository.Delete($"api/temporalSales/{temporalSaleId}");
+
+        if (responseHTTP.Error)
+        {
+            if (responseHTTP.HttpResponseMessage.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                navigationManager.NavigateTo("/");
+                return;
+            }
+
+            var mensajeError = await responseHTTP.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", mensajeError, SweetAlertIcon.Error);
+            return;
+        }
+
+        await LoadAsync();
+        var toast = sweetAlertService.Mixin(new SweetAlertOptions
+            {
+                Toast = true,
+                Position = SweetAlertPosition.TopEnd,
+                ShowConfirmButton = false,
+                Timer = 5000
+            });
+        await toast.FireAsync(icon: SweetAlertIcon.Success, message: "Producto eliminado del carro de compras.");
+    }
 }
