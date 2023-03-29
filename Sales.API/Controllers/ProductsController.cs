@@ -26,6 +26,7 @@ namespace Sales.API.Controllers
             }
 
             [HttpGet]
+            [AllowAnonymous]
             public async Task<ActionResult> Get([FromQuery] PaginationDTO pagination)
             {
                 var queryable = _context.Products
@@ -44,8 +45,8 @@ namespace Sales.API.Controllers
                     .ToListAsync());
             }
 
-
             [HttpGet("totalPages")]
+            [AllowAnonymous]
             public async Task<ActionResult> GetPages([FromQuery] PaginationDTO pagination)
             {
                 var queryable = _context.Products
@@ -62,6 +63,7 @@ namespace Sales.API.Controllers
             }
 
             [HttpGet("{id:int}")]
+            [AllowAnonymous]
             public async Task<IActionResult> GetAsync(int id)
             {
                 var product = await _context.Products
