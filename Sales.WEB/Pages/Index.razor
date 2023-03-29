@@ -1,19 +1,215 @@
 ﻿@page "/"
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService sweetAlertService
 
-<PageTitle>Index</PageTitle>
+<style type="text/css">
+    .card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border: 1px solid lightgray;
+        box-shadow: 2px 2px 8px 4px #d3d3d3d1;
+        border-radius: 15px;
+        font-family: sans-serif;
+        margin: 5px;
+    }
+</style>
 
-<AuthorizeView Roles="Admin">
-    <Authorized>
-        <p>Estas autenticado, @context.User.Identity?.Name</p>
-    </Authorized>
-    <NotAuthorized>
-        <p>No estas autorizado</p>
-    </NotAuthorized>
-</AuthorizeView>
+@if (Products is null)
+{
+    <div class="spinner" />
+}
+else
+{
+    <div class="mb-2" style="display: flex; flex-wrap:wrap; align-items: center;">
+        <div>
+            <input style="width: 400px;" type="text" class="form-control" id="titulo" placeholder="Buscar producto..." @bind-value="Filter" />
+        </div>
+        <div class="mx-1">
+            <button type="button" class="btn btn-outline-primary" @onclick="ApplyFilterAsync"><i class="oi oi-layers" /> Filtrar</button>
+            <button type="button" class="btn btn-outline-danger" @onclick="CleanFilterAsync"><i class="oi oi-ban" /> Limpiar</button>
+        </div>
+        <AuthorizeView>
+            <Authorized>
+                @if (counter > 0)
+                {
+                    <a href="/Orders/ShowCart" class="btn btn-primary">Ver Carro de Compras (@counter)</a>
+                }
+            </Authorized>
+        </AuthorizeView>
+    </div>
+
+    <Pagination CurrentPage="currentPage"
+            TotalPages="totalPages"
+            SelectedPage="SelectedPageAsync" />
+
+    <div class="row row-cols-1 row-cols-md-4 g-4 mt-1">
+        @foreach (var product in Products!)
+        {
+            <div class="col">
+                <div class="card h-100">
+                    <div class="text-center zoom">
+                        <img src="@product.MainImage" style="height:150px; max-width:200px;" class="text-center" alt=@product.Name />
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title text-navy"> @product.Name</h5>
+                        <p class="card-text smfnt">@product.Description</p>
+                        <h5 class="text-muted">@($"{product.Price:C2}")</h5>
+                    </div>
+                    <div class="card-footer text-center">
+                        <a href="/orders/details/@product.Id" class="btn btn-sm btn-secondary"><i class="oi oi-info" /> Detalles</a>
+                        <button class="btn btn-sm btn-primary" @onclick=@(() => AddToCartAsync(product.Id))><i class="oi oi-plus" /> Agregar al Carro</button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private int currentPage = 1;
+    private int totalPages;
+    private int counter = 0;
+    private bool isAuthenticated;
+
+    public List<Product>? Products { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string Page { get; set; } = "";
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string Filter { get; set; } = "";
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; } = null!;
 
 
-<h1>Hello, world!</h1>
+    protected async override Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
 
-Welcome to your new app.
+    protected async override Task OnParametersSetAsync()
+    {
+        await CheckIsAuthenticatedAsync();
+        await LoadCounterAsync();
+    }
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+    private async Task CheckIsAuthenticatedAsync()
+    {
+        var authenticationState = await authenticationStateTask;
+        isAuthenticated = authenticationState.User.Identity!.IsAuthenticated;
+    }
+
+    private async Task LoadCounterAsync()
+    {
+        if (!isAuthenticated)
+        {
+            return;
+        }
+
+        var responseHttp = await repository.Get<int>("/api/temporalSales/count");
+        if (responseHttp.Error)
+        {
+            return;
+        }
+        counter = responseHttp.Response;
+    }
+
+    private async Task SelectedPageAsync(int page)
+    {
+        currentPage = page;
+        await LoadAsync(page);
+    }
+
+    private async Task LoadAsync(int page = 1)
+    {
+        if (!string.IsNullOrWhiteSpace(Page))
+        {
+            page = Convert.ToInt32(Page);
+        }
+
+        string url1 = string.Empty;
+        string url2 = string.Empty;
+
+        if (string.IsNullOrEmpty(Filter))
+        {
+            url1 = $"api/products?page={page}&RecordsNumber=8";
+            url2 = $"api/products/totalPages/?RecordsNumber=8";
+        }
+        else
+        {
+            url1 = $"api/products?page={page}&filter={Filter}&RecordsNumber=8";
+            url2 = $"api/products/totalPages?filter={Filter}&RecordsNumber=8";
+        }
+
+        try
+        {
+            var responseHppt = await repository.Get<List<Product>>(url1);
+            var responseHppt2 = await repository.Get<int>(url2);
+            Products = responseHppt.Response!;
+            totalPages = responseHppt2.Response!;
+        }
+        catch (Exception ex)
+        {
+            await sweetAlertService.FireAsync("Error", ex.Message, SweetAlertIcon.Error);
+        }
+    }
+
+    private async Task CleanFilterAsync()
+    {
+        Filter = string.Empty;
+        await ApplyFilterAsync();
+    }
+
+    private async Task ApplyFilterAsync()
+    {
+        int page = 1;
+        await LoadAsync(page);
+        await SelectedPageAsync(page);
+    }
+
+    private async Task AddToCartAsync(int productId)
+    {
+        if (!isAuthenticated)
+        {
+            navigationManager.NavigateTo("/Login");
+            var toast1 = sweetAlertService.Mixin(new SweetAlertOptions
+                {
+                    Toast = true,
+                    Position = SweetAlertPosition.TopEnd,
+                    ShowConfirmButton = false,
+                    Timer = 5000
+                });
+            await toast1.FireAsync(icon: SweetAlertIcon.Error, message: "Debes haber iniciado sesión para poder agregar productos al carro de compras.");
+            return;
+        }
+
+        var temporalSaleDTO = new TemporalSaleDTO
+            {
+                ProductId = productId
+            };
+
+        var httpResponse = await repository.Post("/api/temporalSales", temporalSaleDTO);
+        if (httpResponse.Error)
+        {
+            var message = await httpResponse.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);
+            return;
+        }
+
+        await LoadCounterAsync();
+
+        var toast2 = sweetAlertService.Mixin(new SweetAlertOptions
+            {
+                Toast = true,
+                Position = SweetAlertPosition.TopEnd,
+                ShowConfirmButton = false,
+                Timer = 5000
+            });
+        await toast2.FireAsync(icon: SweetAlertIcon.Success, message: "Producto agregado al carro de compras.");
+    }
+}

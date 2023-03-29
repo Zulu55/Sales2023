@@ -1,0 +1,27 @@
+﻿<div class="my-2">
+    <MudCarousel Class="mud-width-full" Style="height:200px;" ShowArrows="@arrows" ShowBullets="@bullets" EnableSwipeGesture="@enableSwipeGesture" AutoCycle="@autocycle" TData="object">
+        @foreach (var image in Images)
+        {
+            @if (image.StartsWith("https://sales2023.blob.core.windows.net/products/"))
+            {
+                <MudCarouselItem Transition="transition" Color="@Color.Primary">
+                    <div class="d-flex" style="height:100%; justify-content:center">
+                        <img src="@image" />
+                    </div>
+                </MudCarouselItem>
+            }
+        }
+    </MudCarousel>
+</div>
+
+@code {
+    private bool arrows = true;
+    private bool bullets = true;
+    private bool enableSwipeGesture = true;
+    private bool autocycle = true;
+    private Transition transition = Transition.Slide;
+
+    [EditorRequired]
+    [Parameter]
+    public List<string> Images { get; set; } = null!;
+}
