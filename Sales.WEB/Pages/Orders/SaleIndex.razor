@@ -1,0 +1,120 @@
+﻿@page "/sales"
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService sweetAlertService
+@attribute [Authorize(Roles = "Admin")]
+
+@if (Sales is null)
+{
+    <div class="spinner" />
+}
+else
+{
+    <GenericList MyList="Sales">
+        <Body>
+            <div class="card">
+                <div class="card-header">
+                    <span>
+                        <i class="oi oi-dollar" /> Pedidos
+                    </span>
+                </div>
+                <div class="card-body">
+                    <Pagination CurrentPage="currentPage"
+                            TotalPages="totalPages"
+                            SelectedPage="SelectedPageAsync" />
+
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Usuario</th>
+                                <th>Comentario</th>
+                                <th>Estado</th>
+                                <th>Líneas</th>
+                                <th>Cantidad</th>
+                                <th>Valor</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var sale in Sales)
+                            {
+                                <tr>
+                                    <td>
+                                        @($"{sale.Date.ToLocalTime():yyyy/MM/dd hh:mm tt}")
+                                    </td>
+                                    <td>
+                                        @sale.User!.FullName
+                                    </td>
+                                    <td>
+                                        @sale.Remarks
+                                    </td>
+                                    <td>
+                                        @sale.OrderStatus
+                                    </td>
+                                    <td>
+                                        @sale.Lines
+                                    </td>
+                                    <td>
+                                        @($"{sale.Quantity:N2}")
+                                    </td>
+                                    <td>
+                                        @($"{sale.Value:C2}")
+                                    </td>
+                                    <td>
+                                        <a href="/saleDetails/@sale.Id" class="btn btn-info"><i class="oi oi-info" /> Detalles</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </Body>
+    </GenericList>
+}
+
+@code {
+    private int currentPage = 1;
+    private int totalPages;
+
+    public List<Sale>? Sales { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string Page { get; set; } = "";
+
+    protected async override Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task SelectedPageAsync(int page)
+    {
+        currentPage = page;
+        await LoadAsync(page);
+    }
+
+    private async Task LoadAsync(int page = 1)
+    {
+        if (!string.IsNullOrWhiteSpace(Page))
+        {
+            page = Convert.ToInt32(Page);
+        }
+
+        string url1 = $"api/sales?page={page}";
+        string url2 = $"api/sales/totalPages";
+
+        try
+        {
+            var responseHppt = await repository.Get<List<Sale>>(url1);
+            var responseHppt2 = await repository.Get<int>(url2);
+            Sales = responseHppt.Response!;
+            totalPages = responseHppt2.Response!;
+        }
+        catch (Exception ex)
+        {
+            await sweetAlertService.FireAsync("Error", ex.Message, SweetAlertIcon.Error);
+        }
+    }
+}
