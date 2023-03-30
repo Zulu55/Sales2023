@@ -77,7 +77,7 @@ else
                                         <img src="@temporalSale.Product!.MainImage" style="width:100px;" />
                                     </td>
                                     <td>
-                                        <a href="/ModifyTemporalSale/@temporalSale.Id" class="btn btn-warning"><i class="oi oi-pencil" /> Editar</a>
+                                        <a href="/Orders/ModifyTemporalSale/@temporalSale.Id" class="btn btn-warning"><i class="oi oi-pencil" /> Editar</a>
                                         <button class="btn btn-danger" @onclick=@(() => Delete(temporalSale.Id))><i class="oi oi-trash" /> Borrar</button>
                                     </td>
                                 </tr>
@@ -117,9 +117,31 @@ else
         }
     }
 
-    private void ConfirmOrderAsync()
+    private async Task ConfirmOrderAsync()
     {
-        //TODO: Pending to implement
+        var result = await sweetAlertService.FireAsync(new SweetAlertOptions
+            {
+                Title = "Confirmación",
+                Text = "¿Esta seguro que quieres confirmar el pedido?",
+                Icon = SweetAlertIcon.Question,
+                ShowCancelButton = true
+            });
+
+        var confirm = string.IsNullOrEmpty(result.Value);
+        if (confirm)
+        {
+            return;
+        }
+
+        var httpResponse = await repository.Post("/api/sales", SaleDTO);
+        if (httpResponse.Error)
+        {
+            var message = await httpResponse.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);
+            return;
+        }
+
+        navigationManager.NavigateTo("/Orders/SaleConfirmed");
     }
 
     private async Task Delete(int temporalSaleId)
@@ -145,7 +167,7 @@ else
         {
             if (responseHTTP.HttpResponseMessage.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                navigationManager.NavigateTo("/");
+                navigationManager.NavigateTo("/Orders/ShowCart");
                 return;
             }
 
