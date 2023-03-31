@@ -3,7 +3,7 @@
 namespace Sales.Shared.DTOs
 {
     public class SaleDTO
-    {
+    {   
         public int Id { get; set; }
 
         public OrderStatus OrderStatus { get; set; }
