@@ -1,0 +1,145 @@
+﻿@page "/Orders/ModifyTemporalSale/{TemporalSaleId:int}"
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService sweetAlertService
+
+@if (loading)
+{
+    <div class="spinner" />
+}
+else
+{
+    <div class="card">
+        <div class="card-header">
+            <span>
+                <i class="oi oi-star" /> @product!.Name
+                <a class="btn btn-sm btn-success float-end" href="/"><i class="oi oi-arrow-thick-left" /> Regresar</a>
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-6">
+                    <div class="mb-3">
+                        <label>Nombre:</label>
+                        <div>
+                            <b>@product.Name</b>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Descripción:</label>
+                        <div>
+                            <b>@product.Description</b>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Precio:</label>
+                        <div>
+                            <b>@($"{product.Price:C2}")</b>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Inventario:</label>
+                        <div>
+                            <b>@($"{product.Stock:N2}")</b>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Categorías:</label>
+                        <div>
+                            @foreach (var category in categories!)
+                            {
+                                <div class="mx-2">
+                                    <b>@category</b>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <EditForm Model="temporalSaleDTO" OnValidSubmit="UpdateCartAsync">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label>Cantidad:</label>
+                            <div>
+                                <InputNumber class="form-control" @bind-Value="@temporalSaleDTO!.Quantity" />
+                                <ValidationMessage For="@(() => temporalSaleDTO.Quantity)" />
+                            </div>
+                            <label>Comentarios:</label>
+                            <div>
+                                <InputText class="form-control" @bind-Value="@temporalSaleDTO.Remarks" />
+                                <ValidationMessage For="@(() => temporalSaleDTO.Remarks)" />
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" type="submit"><i class="oi oi-check" /> Actualizar Carro de Compras</button>
+                    </EditForm>
+                </div>
+            </div>
+            <CarouselView Images="images" />
+        </div>
+    </div>
+}
+
+@code {
+    private List<string>? categories;
+    private List<string>? images;
+    private bool loading = true;
+    private Product? product;
+    private bool isAuthenticated;
+    private TemporalSaleDTO? temporalSaleDTO;
+
+    [Parameter]
+    public int TemporalSaleId { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        await LoadTemporalSaleAsync();
+    }
+
+    private async Task LoadTemporalSaleAsync()
+    {
+        loading = true;
+        var httpResponse = await repository.Get<TemporalSale>($"/api/temporalSales/{TemporalSaleId}");
+
+        if (httpResponse.Error)
+        {
+            loading = false;
+            var message = await httpResponse.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);
+            return;
+        }
+
+        var temporalSale = httpResponse.Response!;
+        temporalSaleDTO = new TemporalSaleDTO
+            {
+                Id = temporalSale.Id,
+                ProductId = temporalSale.ProductId,
+                Remarks = temporalSale.Remarks!,
+                Quantity = temporalSale.Quantity
+            };
+        product = temporalSale.Product;
+        categories = product!.ProductCategories!.Select(x => x.Category.Name).ToList();
+        images = product.ProductImages!.Select(x => x.Image).ToList();
+        loading = false;
+    }
+
+    public async Task UpdateCartAsync()
+    {
+        var httpResponse = await repository.Put("/api/temporalSales", temporalSaleDTO);
+        if (httpResponse.Error)
+        {
+            var message = await httpResponse.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);
+            return;
+        }
+
+        var toast2 = sweetAlertService.Mixin(new SweetAlertOptions
+            {
+                Toast = true,
+                Position = SweetAlertPosition.TopEnd,
+                ShowConfirmButton = false,
+                Timer = 5000
+            });
+        await toast2.FireAsync(icon: SweetAlertIcon.Success, message: "Producto modificado en el de compras.");
+        navigationManager.NavigateTo("/Orders/ShowCart");
+    }
+}
