@@ -2,7 +2,7 @@
 @inject IRepository repository
 @inject NavigationManager navigationManager
 @inject SweetAlertService sweetAlertService
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = "Admin, User")]
 
 @if (Sales is null)
 {

@@ -1,0 +1,140 @@
+﻿@page "/users"
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService sweetAlertService
+@attribute [Authorize(Roles = "Admin")]
+
+@if (Users is null)
+{
+    <div class="spinner" />
+}
+else
+{
+    <GenericList MyList="Users">
+        <Body>
+            <div class="card">
+                <div class="card-header">
+                    <span>
+                        <i class="oi oi-people"></i> Usuarios
+                        <a class="btn btn-sm btn-primary float-end" href="/register/?IsAdmin=true"><i class="oi oi-plus"></i> Adicionar Administrador</a>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2" style="display: flex; flex-wrap:wrap; align-items: center;">
+                        <div>
+                            <input style="width: 400px;" type="text" class="form-control" id="titulo" placeholder="Buscar usuario..." @bind-value="Filter" />
+                        </div>
+                        <div class="mx-1">
+                            <button type="button" class="btn btn-outline-primary" @onclick="ApplyFilterAsync"><i class="oi oi-layers" /> Filtrar</button>
+                            <button type="button" class="btn btn-outline-danger" @onclick="CleanFilterAsync"><i class="oi oi-ban" /> Limpiar</button>
+                        </div>
+                    </div>
+
+                    <Pagination CurrentPage="currentPage"
+                            TotalPages="totalPages"
+                            SelectedPage="SelectedPage" />
+
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Imagén</th>
+                                <th>Usuario</th>
+                                <th>Documento</th>
+                                <th>Teléfono</th>
+                                <th>Email</th>
+                                <th>Dirección</th>
+                                <th>Confirmado</th>
+                                <th>Tipo Usuario</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in Users)
+                            {
+                                <tr>
+                                    <td><img src="@user.Photo" width="80" height="80" style="border-radius:50%" /></td>
+                                    <td>@user.FullName</td>
+                                    <td>@user.Document</td>
+                                    <td>@user.PhoneNumber</td>
+                                    <td>@user.Email</td>
+                                    <td>@user.Address, @user.City!.Name</td>
+                                    <td>@user.EmailConfirmed</td>
+                                    <td>@user.UserType</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </Body>
+    </GenericList>
+}
+
+@code {
+    public List<User>? Users { get; set; }
+    private int currentPage = 1;
+    private int totalPages;
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string Page { get; set; } = "";
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string Filter { get; set; } = "";
+
+    protected async override Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task SelectedPage(int page)
+    {
+        currentPage = page;
+        await LoadAsync(page);
+    }
+
+    private async Task LoadAsync(int page = 1)
+    {
+        if (!string.IsNullOrWhiteSpace(Page))
+        {
+            page = Convert.ToInt32(Page);
+        }
+
+        string url1 = string.Empty;
+        string url2 = string.Empty;
+
+        if (string.IsNullOrEmpty(Filter))
+        {
+            url1 = $"api/accounts/all?page={page}";
+            url2 = $"api/accounts/totalPages";
+        }
+        else
+        {
+            url1 = $"api/accounts/all?page={page}&filter={Filter}";
+            url2 = $"api/accounts/totalPages?filter={Filter}";
+        }
+
+        try
+        {
+            var responseHppt = await repository.Get<List<User>>(url1);
+            var responseHppt2 = await repository.Get<int>(url2);
+            Users = responseHppt.Response!;
+            totalPages = responseHppt2.Response!;
+        }
+        catch (Exception ex)
+        {
+            await sweetAlertService.FireAsync("Error", ex.Message, SweetAlertIcon.Error);
+        }
+    }
+
+    private async Task ApplyFilterAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task CleanFilterAsync()
+    {
+        Filter = string.Empty;
+        await LoadAsync();
+    }
+}
