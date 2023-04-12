@@ -2,7 +2,7 @@
 @inject IRepository repository
 @inject NavigationManager navigationManager
 @inject SweetAlertService sweetAlertService
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = "Admin, User")]
 
 @if (sale is null)
 {
@@ -19,16 +19,24 @@ else
                         @if (sale.OrderStatus == OrderStatus.Nuevo)
                         {
                             <button class="btn btn-sm btn-danger float-end mx-2" @onclick=@(() => CancelSaleAsync())><i class="oi oi-trash" /> Cancelar</button>
-                            <button class="btn btn-sm btn-primary float-end mx-2" @onclick=@(() => DispatchSaleAsync())><i class="oi oi-external-link" /> Despachar</button>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <button class="btn btn-sm btn-primary float-end mx-2" @onclick=@(() => DispatchSaleAsync())><i class="oi oi-external-link" /> Despachar</button>
+                                </Authorized>
+                            </AuthorizeView>
                         }
-                        else if (sale.OrderStatus == OrderStatus.Despachado)
-                        {
-                            <button class="btn btn-sm btn-warning float-end mx-2" @onclick=@(() => SendSaleAsync())><i class="oi oi-location" /> Enviar</button>
-                        }
-                        else if (sale.OrderStatus == OrderStatus.Enviado)
-                        {
-                            <button class="btn btn-sm btn-dark float-end mx-2" @onclick=@(() => ConfirmSaleAsync())><i class="oi oi-thumb-up" /> Confirmar</button>
-                        }
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                @if (sale.OrderStatus == OrderStatus.Despachado)
+                                {
+                                    <button class="btn btn-sm btn-warning float-end mx-2" @onclick=@(() => SendSaleAsync())><i class="oi oi-location" /> Enviar</button>
+                                }
+                                @if (sale.OrderStatus == OrderStatus.Enviado)
+                                {
+                                    <button class="btn btn-sm btn-dark float-end mx-2" @onclick=@(() => ConfirmSaleAsync())><i class="oi oi-thumb-up" /> Confirmar</button>
+                                }
+                            </Authorized>
+                        </AuthorizeView>
                         <a class="btn btn-sm btn-success float-end" href="/sales"><i class="oi oi-arrow-thick-left" /> Regresar</a>
                     </span>
                 </div>
