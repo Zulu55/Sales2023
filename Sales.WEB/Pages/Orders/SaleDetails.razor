@@ -1,0 +1,188 @@
+﻿@page "/orders/saleDetails/{SaleId:int}"
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService sweetAlertService
+@attribute [Authorize(Roles = "Admin, User")]
+
+@if (sale is null)
+{
+    <div class="spinner" />
+}
+else
+{
+    <GenericList MyList="sale.SaleDetails!.ToList()">
+        <Body>
+            <div class="card">
+                <div class="card-header">
+                    <span>
+                        <i class="oi oi-dollar"></i> @sale.User!.FullName
+                        @if (sale.OrderStatus == OrderStatus.Nuevo)
+                        {
+                            <button class="btn btn-sm btn-danger float-end mx-2" @onclick=@(() => CancelSaleAsync())><i class="oi oi-trash" /> Cancelar</button>
+                            <AuthorizeView Roles="Admin">
+                                <Authorized>
+                                    <button class="btn btn-sm btn-primary float-end mx-2" @onclick=@(() => DispatchSaleAsync())><i class="oi oi-external-link" /> Despachar</button>
+                                </Authorized>
+                            </AuthorizeView>
+                        }
+                        <AuthorizeView Roles="Admin">
+                            <Authorized>
+                                @if (sale.OrderStatus == OrderStatus.Despachado)
+                                {
+                                    <button class="btn btn-sm btn-warning float-end mx-2" @onclick=@(() => SendSaleAsync())><i class="oi oi-location" /> Enviar</button>
+                                }
+                                @if (sale.OrderStatus == OrderStatus.Enviado)
+                                {
+                                    <button class="btn btn-sm btn-dark float-end mx-2" @onclick=@(() => ConfirmSaleAsync())><i class="oi oi-thumb-up" /> Confirmar</button>
+                                }
+                            </Authorized>
+                        </AuthorizeView>
+                        <a class="btn btn-sm btn-success float-end" href="/sales"><i class="oi oi-arrow-thick-left" /> Regresar</a>
+                    </span>
+                </div>
+                <div class="row mx-2 my-2">
+                    <div class="col-2">
+                        <p>Cliente</p>
+                        <p>Documento</p>
+                        <p>Teléfono</p>
+                        <p>Email</p>
+                        <p>Dirección</p>
+                    </div>
+                    <div class="col-4">
+                        <p><strong>@sale.User.FullName</strong></p>
+                        <p><strong>@sale.User.Document</strong></p>
+                        <p><strong>@sale.User.PhoneNumber</strong></p>
+                        <p><strong>@sale.User.UserName</strong></p>
+                        <p><strong>@sale.User.Address, @sale.User.City!.Name, @sale.User.City.State!.Name, @sale.User.City.State.Country!.Name</strong></p>
+                    </div>
+                    <div class="col-2">
+                        <p>Estado</p>
+                        <p>Fecha</p>
+                        <p>Comentarios</p>
+                        <p>Líneas</p>
+                        <p>Cantidad</p>
+                        <p>Valor</p>
+                    </div>
+                    <div class="col-4">
+                        <p><strong>@sale.OrderStatus</strong></p>
+                        <p><strong>@($"{sale.Date.ToLocalTime():yyyy/MM/dd hh:mm tt}")</strong></p>
+                        <p><strong>@(string.IsNullOrEmpty(sale.Remarks) ? "NA" : sale.Remarks)</strong></p>
+                        <p><strong>@sale.Lines</strong></p>
+                        <p><strong>@($"{sale.Quantity:N2}")</strong></p>
+                        <p><strong>@($"{sale.Value:C2}")</strong></p>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Imagen</th>
+                                <th>Comentarios</th>
+                                <th>Cantidad</th>
+                                <th>Precio</th>
+                                <th>Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var saleDetail in sale.SaleDetails!)
+                            {
+                                <tr>
+                                    <td>@saleDetail.Product!.Name</td>
+                                    <td><img src="@saleDetail.Product!.MainImage" style="width:100px;" /></td>
+                                    <td>@saleDetail.Remarks</td>
+                                    <td>@($"{saleDetail.Quantity:N2}")</td>
+                                    <td>@($"{saleDetail.Product!.Price:C2}")</td>
+                                    <td>@($"{saleDetail.Value:C2}")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </Body>
+    </GenericList>
+}
+
+@code {
+    private Sale? sale;
+
+    [Parameter]
+    public int SaleId { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var responseHppt = await repository.Get<Sale>($"api/sales/{SaleId}");
+        if (responseHppt.Error)
+        {
+            if (responseHppt.HttpResponseMessage.StatusCode == HttpStatusCode.NotFound)
+            {
+                navigationManager.NavigateTo("/sales");
+                return;
+            }
+            var messageError = await responseHppt.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", messageError, SweetAlertIcon.Error);
+            return;
+        }
+        sale = responseHppt.Response;
+    }
+
+    private async Task CancelSaleAsync()
+    {
+        await ModifyTemporalSale("cancelar", OrderStatus.Cancelado);
+    }
+
+    private async Task DispatchSaleAsync()
+    {
+        await ModifyTemporalSale("despachar", OrderStatus.Despachado);
+    }
+
+    private async Task SendSaleAsync()
+    {
+        await ModifyTemporalSale("enviar", OrderStatus.Enviado);
+    }
+
+    private async Task ConfirmSaleAsync()
+    {
+        await ModifyTemporalSale("confirmar", OrderStatus.Confirmado);
+    }
+
+    private async Task ModifyTemporalSale(string message, OrderStatus status)
+    {
+        var result = await sweetAlertService.FireAsync(new SweetAlertOptions
+            {
+                Title = "Confirmación",
+                Text = $"¿Esta seguro que quieres {message} el pedido?",
+                Icon = SweetAlertIcon.Question,
+                ShowCancelButton = true
+            });
+
+        var confirm = string.IsNullOrEmpty(result.Value);
+        if (confirm)
+        {
+            return;
+        }
+
+        var saleDTO = new SaleDTO
+            {
+                Id = SaleId,
+                OrderStatus = status
+            };
+
+        var responseHTTP = await repository.Put("api/sales", saleDTO);
+        if (responseHTTP.Error)
+        {
+            var mensajeError = await responseHTTP.GetErrorMessageAsync();
+            await sweetAlertService.FireAsync("Error", mensajeError, SweetAlertIcon.Error);
+            return;
+        }
+
+        navigationManager.NavigateTo("/sales");
+    }
+}

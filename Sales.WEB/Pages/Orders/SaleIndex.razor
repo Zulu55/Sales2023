@@ -2,7 +2,7 @@
 @inject IRepository repository
 @inject NavigationManager navigationManager
 @inject SweetAlertService sweetAlertService
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = "Admin, User")]
 
 @if (Sales is null)
 {
@@ -27,7 +27,11 @@ else
                         <thead>
                             <tr>
                                 <th>Fecha</th>
-                                <th>Usuario</th>
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <th>Usuario</th>
+                                    </Authorized>
+                                </AuthorizeView>
                                 <th>Comentario</th>
                                 <th>Estado</th>
                                 <th>Líneas</th>
@@ -43,9 +47,13 @@ else
                                     <td>
                                         @($"{sale.Date.ToLocalTime():yyyy/MM/dd hh:mm tt}")
                                     </td>
-                                    <td>
-                                        @sale.User!.FullName
-                                    </td>
+                                    <AuthorizeView Roles="Admin">
+                                        <Authorized>
+                                            <td>
+                                                @sale.User!.FullName
+                                            </td>
+                                        </Authorized>
+                                    </AuthorizeView>
                                     <td>
                                         @sale.Remarks
                                     </td>
@@ -62,7 +70,7 @@ else
                                         @($"{sale.Value:C2}")
                                     </td>
                                     <td>
-                                        <a href="/saleDetails/@sale.Id" class="btn btn-info"><i class="oi oi-info" /> Detalles</a>
+                                        <a href="/orders/saleDetails/@sale.Id" class="btn btn-info"><i class="oi oi-info" /> Detalles</a>
                                     </td>
                                 </tr>
                             }
